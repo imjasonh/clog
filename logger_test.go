@@ -113,3 +113,37 @@ func TestLoggerPC(t *testing.T) {
 		t.Errorf("want %v, got %v", want, got)
 	}
 }
+
+func TestLoggerLevelFiltering(t *testing.T) {
+	b := new(bytes.Buffer)
+	base := slog.New(NewHandler(slog.NewJSONHandler(b, &slog.HandlerOptions{
+		Level:       slog.LevelWarn,
+		ReplaceAttr: testopts.ReplaceAttr,
+	})))
+	log := NewLogger(base)
+
+	log.Info("info")
+	if b.Len() != 0 {
+		t.Fatalf("unexpected log: %s", b.String())
+	}
+
+	b.Reset()
+	log.Infof("infof")
+	if b.Len() != 0 {
+		t.Fatalf("unexpected log: %s", b.String())
+	}
+
+	b.Reset()
+	log.Warn("warn")
+	want := map[string]any{
+		"level": "WARN",
+		"msg":   "warn",
+	}
+	var got map[string]any
+	if err := json.Unmarshal(b.Bytes(), &got); err != nil {
+		t.Fatal(err)
+	}
+	if !reflect.DeepEqual(want, got) {
+		t.Errorf("want %v, got %v", want, got)
+	}
+}
